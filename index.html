@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Беги или умри!</title>
+  
+  <!-- PWA для iPhone — добавь на домашний экран -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/googlefonts/noto-emoji/main/png/128/emoji_u1f996.png">
+  
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#87CEEB; font-family:Arial; overflow:hidden; touch-action:manipulation; }
+    canvas { display:block; margin:0 auto; max-width:100vw; image-rendering:pixelated; }
+    h1 { text-align:center; padding:15px; color:#333; font-size:24px; background:rgba(255,255,255,0.8); position:absolute; top:0; width:100%; z-index:10; }
+  </style>
+</head>
+<body>
+  <h1>Беги или умри! 👆 Тапни для прыжка</h1>
+  <canvas id="c"></canvas>
+
+<script>
+// === ВСЯ ИГРА ЗДЕСЬ ===
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = 900;
+canvas.height = 400;
+
+let dino = {x:80, y:250, w:50, h:60, dy:0, grav:0.6, jumpPower:-15, grounded:true};
+let obstacles = [];
+let score = 0;
+let speed = 6;
+let gameOver = false;
+let frames = 0;
+
+function jump(){ if(dino.grounded){ dino.dy = dino.jumpPower; dino.grounded=false; }}
+
+canvas.addEventListener('click', jump);
+canvas.addEventListener('touchstart', e=>{e.preventDefault(); jump();});
+
+function spawn(){ obstacles.push({x:canvas.width+50, w:30+Math.random()*40, h:50+Math.random()*30}); }
+
+function loop(){
+  if(gameOver) return;
+  
+  frames++;
+  score += 0.1;
+  if(frames%80===0) spawn();
+  if(frames%300===0) speed += 0.5;
+
+  // динозавр
+  dino.dy += dino.grav;
+  dino.y += dino.dy;
+  if(dino.y > 250){ dino.y=250; dino.dy=0; dino.grounded=true; }
+
+  // препятствия
+  obstacles = obstacles.filter(o=>o.x+o.w>0);
+  obstacles.forEach(o=>{ o.x -= speed; });
+
+  // столкновение
+  for(let o of obstacles){
+    if(dino.x+dino.w>o.x && dino.x<o.x+o.w && dino.y+dino.h>o.y){
+      gameOver = true;
+    }
+  }
+
+  // рисуем
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  
+  // небо + земля
+  ctx.fillStyle = '#87CEEB'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#8B7355'; ctx.fillRect(0,310,canvas.width,90);
+
+  // динозавр
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
+
+  // препятствия
+  ctx.fillStyle = '#dc2626';
+  obstacles.forEach(o=>ctx.fillRect(o.x, 310-o.h, o.w, o.h));
+
+  // счёт
+  ctx.fillStyle = '#000';
+  ctx.font = '30px Arial';
+  ctx.fillText(`Счёт: ${Math.floor(score)}`, 20, 50);
+
+  if(gameOver){
+    ctx.fillStyle = 'rgba(
